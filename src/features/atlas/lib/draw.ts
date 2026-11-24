@@ -1,5 +1,5 @@
 import { tileCenter } from "./grid";
-import type { Box, Door, FloorPatch, GameDocument, Plate } from "@/shared/types";
+import type { Baffle, Box, Door, FloorPatch, GameDocument, Plate, Post } from "@/shared/types";
 
 export const TILE = 46;
 
@@ -44,6 +44,8 @@ export function paintStage(ctx: CanvasRenderingContext2D, document: GameDocument
   for (const floor of level.floors) paintFloor(ctx, floor, tile);
   for (const plate of level.plates) paintPlate(ctx, plate, tile);
   for (const door of level.doors) paintDoor(ctx, door, tile);
+  for (const post of level.posts) paintPost(ctx, post, tile);
+  for (const baffle of level.baffles) paintBaffle(ctx, baffle, tile);
   for (const box of level.boxes) paintBox(ctx, box, tile);
   paintPlayer(ctx, level.player.x, level.player.y, tile, document.attempt.status === "cleared");
 }
@@ -126,7 +128,7 @@ function paintPlate(ctx: CanvasRenderingContext2D, plate: Plate, tile: number): 
 function paintDoor(ctx: CanvasRenderingContext2D, door: Door, tile: number): void {
   const px = door.x * tile;
   const py = door.y * tile;
-  ctx.fillStyle = door.open ? "rgba(201,163,106,0.22)" : "#5b4630";
+  ctx.fillStyle = door.open ? "rgba(201,163,106,0.45)" : "#5b4630";
   ctx.fillRect(px + 14, py + 4, tile - 28, tile - 8);
   ctx.strokeStyle = brass;
   ctx.lineWidth = 2;
@@ -136,6 +138,72 @@ function paintDoor(ctx: CanvasRenderingContext2D, door: Door, tile: number): voi
     ctx.arc(px + tile / 2 + 6, py + tile / 2, 3, 0, Math.PI * 2);
     ctx.fillStyle = brass;
     ctx.fill();
+  }
+}
+
+function paintPost(ctx: CanvasRenderingContext2D, post: Post, tile: number): void {
+  const cx = post.x * tile + tile / 2;
+  const cy = post.y * tile + tile / 2;
+  // Two ear cups on a listening mark.
+  ctx.strokeStyle = "rgba(201,163,106,0.85)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx - 5, cy, 8, Math.PI * 0.5, Math.PI * 1.5);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx + 5, cy, 8, Math.PI * 1.5, Math.PI * 0.5);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(201,163,106,0.12)";
+  ctx.fillRect(cx - 12, cy - 6, 24, 12);
+  ctx.fillStyle = brass;
+  ctx.font = "10px ui-serif, Palatino, serif";
+  ctx.textAlign = "center";
+  ctx.fillText(post.name, cx, cy + 18);
+}
+
+function paintBaffle(ctx: CanvasRenderingContext2D, baffle: Baffle, tile: number): void {
+  const { x, y, side } = baffle;
+  let x1 = x * tile;
+  let y1 = y * tile;
+  let x2 = x * tile;
+  let y2 = y * tile;
+  if (side === "n") { x1 = x * tile; y1 = y * tile; x2 = (x + 1) * tile; y2 = y * tile; }
+  else if (side === "s") { x1 = x * tile; y1 = (y + 1) * tile; x2 = (x + 1) * tile; y2 = (y + 1) * tile; }
+  else if (side === "w") { x1 = x * tile; y1 = y * tile; x2 = x * tile; y2 = (y + 1) * tile; }
+  else { x1 = (x + 1) * tile; y1 = y * tile; x2 = (x + 1) * tile; y2 = (y + 1) * tile; }
+
+  if (!baffle.raised) {
+    // Hinge marks printed on the floor while the board lies flat.
+    ctx.strokeStyle = "rgba(201,163,106,0.35)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    return;
+  }
+  // Standing board: a thick plank on the cell edge, with a strip band if pasted.
+  ctx.strokeStyle = baffle.flip ? "#b56a32" : "#8a93a0";
+  ctx.lineWidth = 7;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.strokeStyle = "#1c1610";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  if (baffle.stripped) {
+    ctx.strokeStyle = "#e8d7b8";
+    ctx.lineWidth = 7;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 }
 

@@ -1,20 +1,24 @@
 import { computed, type Ref } from "vue";
-import { LEVELS, getLevel, hydrate } from "../lib/catalog";
+import { catalogEntries, getAnyLevel, isEchoId, PUSH_LEVELS } from "../lib/catalog";
 import { betterRecord, readSave, writeSave } from "../lib/persist";
 import { evaluateGadgets } from "@/features/gadget";
 import { freshAttempt } from "@/features/ledger";
 import type { GameDocument } from "@/shared/types";
 
+const ENTRIES = catalogEntries();
+const FIRST_ID = ENTRIES[0].id;
+
+function knownId(id: string): boolean {
+  return ENTRIES.some((entry) => entry.id === id);
+}
+
 export function loadInitial(): GameDocument {
   const saved = readSave();
-  const currentLevelId =
-    saved && LEVELS.some((level) => level.id === saved.currentLevelId)
-      ? saved.currentLevelId
-      : LEVELS[0].id;
+  const currentLevelId = saved && knownId(saved.currentLevelId) ? saved.currentLevelId : FIRST_ID;
   const document: GameDocument = {
     version: 1,
     currentLevelId,
-    level: hydrate(getLevel(currentLevelId)),
+    level: getAnyLevel(currentLevelId),
     attempt: freshAttempt(),
     records: saved?.records ?? {},
   };
@@ -24,19 +28,20 @@ export function loadInitial(): GameDocument {
 
 export function useVoyage(document: Ref<GameDocument>) {
   const catalog = computed(() =>
-    LEVELS.map((level) => ({
-      id: level.id,
-      title: level.title,
-      blurb: level.blurb,
-      bestSteps: document.value.records[level.id]?.bestSteps ?? null,
-      current: level.id === document.value.currentLevelId,
+    ENTRIES.map((entry) => ({
+      id: entry.id,
+      title: entry.title,
+      blurb: entry.blurb,
+      bestSteps: document.value.records[entry.id]?.bestSteps ?? null,
+      current: entry.id === document.value.currentLevelId,
+      echo: isEchoId(entry.id),
     })),
   );
   const completed = computed(() =>
     Object.entries(document.value.records)
       .map(([id, record]) => ({
         id,
-        title: LEVELS.find((level) => level.id === id)?.title ?? id,
+        title: ENTRIES.find((entry) => entry.id === id)?.title ?? id,
         bestSteps: record.bestSteps,
         clearedAt: record.clearedAt,
       }))
@@ -52,9 +57,9 @@ export function useVoyage(document: Ref<GameDocument>) {
   }
 
   function openLevel(id: string): void {
-    const blueprint = getLevel(id);
+    if (!knownId(id)) throw new Error(`未知关卡 ${id}`);
     document.value.currentLevelId = id;
-    document.value.level = hydrate(blueprint);
+    document.value.level = getAnyLevel(id);
     document.value.attempt = freshAttempt();
     evaluateGadgets(document.value);
     persist();
@@ -73,3 +78,5 @@ export function useVoyage(document: Ref<GameDocument>) {
 
   return { catalog, completed, openLevel, resetLevel, commitClear, persist };
 }
+
+export { PUSH_LEVELS };

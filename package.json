@@ -7,14 +7,19 @@
     "dev": "vite --host 0.0.0.0",
     "typecheck": "vue-tsc --noEmit",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "verify": "./node_modules/.bin/esbuild scripts/verify-echo.ts --bundle --platform=node --format=esm --loader:.vue=text --outfile=node_modules/.cache/verify-echo.mjs --alias:@=./src && ./node_modules/.bin/esbuild scripts/verify-louder.ts --bundle --platform=node --format=esm --loader:.vue=text --outfile=node_modules/.cache/verify-louder.mjs --alias:@=./src && ./node_modules/.bin/esbuild scripts/verify-play.ts --bundle --platform=node --format=esm --loader:.vue=text --outfile=node_modules/.cache/verify-play.mjs --alias:@=./src && ./node_modules/.bin/esbuild scripts/verify-model.ts --bundle --platform=node --format=esm --loader:.vue=text --outfile=node_modules/.cache/verify-model.mjs --alias:@=./src && ./node_modules/.bin/esbuild scripts/verify-wrong.ts --bundle --platform=node --format=esm --loader:.vue=text --outfile=node_modules/.cache/verify-wrong.mjs --alias:@=./src && node node_modules/.cache/verify-echo.mjs && node node_modules/.cache/verify-louder.mjs && node node_modules/.cache/verify-play.mjs && node node_modules/.cache/verify-model.mjs && ./node_modules/.bin/esbuild scripts/verify-push.ts --bundle --platform=node --format=esm --loader:.vue=text --outfile=node_modules/.cache/verify-push.mjs --alias:@=./src && node node_modules/.cache/verify-wrong.mjs && node node_modules/.cache/verify-push.mjs",
+    "smoke": "./node_modules/.bin/vite build --config vite.smoke.config.ts && node scripts/smoke-browser.mjs && node scripts/smoke-deliver.mjs"
   },
   "dependencies": {
     "vue": "^3.5.24"
   },
   "devDependencies": {
+    "@types/node": "^26.6.7",
     "@vitejs/plugin-vue": "^6.0.2",
     "@vue/compiler-sfc": "^3.5.24",
+    "esbuild": "^0.28.2",
+    "jsdom": "^31.0.1",
     "typescript": "~5.9.3",
     "vite": "^7.2.2",
     "vue-tsc": "^3.1.4"

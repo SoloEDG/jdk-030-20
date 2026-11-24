@@ -15,6 +15,11 @@ export function goalsSatisfied(document: GameDocument): boolean {
 }
 
 export function coverageLine(document: GameDocument): string {
+  if (document.level.mode === "echo") {
+    const raised = document.level.baffles.filter((b) => b.raised).length;
+    const strips = document.level.baffles.filter((b) => b.stripped).length;
+    return `封板 ${raised} 块立起 · 封条 ${strips} 条 · 走到听音位蒙眼交货`;
+  }
   const total = goalCells(document.level).length;
   const filled = filledGoals(document).length;
   return `${filled} / ${total} 个目标格已有箱子`;

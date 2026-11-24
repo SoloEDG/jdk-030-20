@@ -1,4 +1,5 @@
 import { createId } from "@/shared/document";
+import { ECHO_LEVELS, echoBlueprint, hydrateEcho } from "@/features/echo";
 import type {
   BoxKind,
   FloorMorph,
@@ -10,6 +11,7 @@ export interface LevelBlueprint {
   id: string;
   title: string;
   blurb: string;
+  mode: "push";
   rows: string[];
   player: { x: number; y: number };
   boxes: { kind: BoxKind; x: number; y: number }[];
@@ -35,11 +37,12 @@ function tilesOf(rows: string[]): TileKind[][] {
   );
 }
 
-export const LEVELS: LevelBlueprint[] = [
+export const PUSH_LEVELS: LevelBlueprint[] = [
   {
     id: "latch-01",
     title: "门闩入门",
     blurb: "木箱压上木踏板才会开门。多出来的箱子用来压住开关。",
+    mode: "push",
     rows: [
       "#########",
       "#.......#",
@@ -65,6 +68,7 @@ export const LEVELS: LevelBlueprint[] = [
     id: "latch-02",
     title: "认材",
     blurb: "铁踏板只认铁箱。木箱压上去门不会动。",
+    mode: "push",
     rows: [
       "##########",
       "#........#",
@@ -90,6 +94,7 @@ export const LEVELS: LevelBlueprint[] = [
     id: "latch-03",
     title: "架桥",
     blurb: "木踏板升起缺口上的桥板。铁箱过桥后，木箱去压本侧目标。",
+    mode: "push",
     rows: [
       "###########",
       "#........*#",
@@ -118,6 +123,7 @@ export const LEVELS: LevelBlueprint[] = [
     id: "latch-04",
     title: "封廊",
     blurb: "先把一只木箱送进左侧目标，再压踏板。踏板会封住那条廊并打开右侧的门。",
+    mode: "push",
     rows: [
       "##########",
       "#........#",
@@ -143,6 +149,7 @@ export const LEVELS: LevelBlueprint[] = [
     id: "latch-05",
     title: "双色闸",
     blurb: "玻璃踏板与木踏板各管一扇门。两只箱子都要过闸到达目标。",
+    mode: "push",
     rows: [
       "###########",
       "#.........#",
@@ -173,8 +180,10 @@ export const LEVELS: LevelBlueprint[] = [
   },
 ];
 
+export type AnyBlueprint = LevelBlueprint | ReturnType<typeof echoBlueprint>;
+
 export function getLevel(id: string): LevelBlueprint {
-  const found = LEVELS.find((level) => level.id === id);
+  const found = PUSH_LEVELS.find((level) => level.id === id);
   if (!found) throw new Error(`未知关卡 ${id}`);
   return found;
 }
@@ -192,9 +201,38 @@ export function hydrate(blueprint: LevelBlueprint): RuntimeLevel {
     plates: blueprint.plates.map((plate, index) => ({
       ...plate,
       id: `p-${blueprint.id}-${index}`,
+      boardIds: [],
       powered: false,
     })),
     doors: blueprint.doors.map((door) => ({ ...door, open: false })),
     floors: blueprint.floors.map((floor) => ({ ...floor, active: false })),
+    baffles: [],
+    posts: [],
+    routes: [],
+    scenarios: [],
+    poles: [],
+    tolerance: 0,
+    stripBudget: 0,
+    mode: "push",
   };
 }
+
+/** Catalog entries from both blocks, in play order: push first, then echo. */
+export function catalogEntries(): { id: string; title: string; blurb: string }[] {
+  return [
+    ...PUSH_LEVELS.map((level) => ({ id: level.id, title: level.title, blurb: level.blurb })),
+    ...ECHO_LEVELS.map((level) => ({ id: level.id, title: level.title, blurb: level.blurb })),
+  ];
+}
+
+export function isEchoId(id: string): boolean {
+  return ECHO_LEVELS.some((level) => level.id === id);
+}
+
+export function getAnyLevel(id: string): RuntimeLevel {
+  if (isEchoId(id)) return hydrateEcho(echoBlueprint(id));
+  return hydrate(getLevel(id));
+}
+
+/** Kept for callers that only ever load the push block. */
+export const LEVELS = PUSH_LEVELS;

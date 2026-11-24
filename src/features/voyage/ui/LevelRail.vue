@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{
-  catalog: { id: string; title: string; blurb: string; bestSteps: number | null; current: boolean }[];
+  catalog: { id: string; title: string; blurb: string; bestSteps: number | null; current: boolean; echo: boolean }[];
 }>();
 defineEmits<{ select: [id: string]; reset: [] }>();
 </script>
@@ -16,7 +16,9 @@ defineEmits<{ select: [id: string]; reset: [] }>();
           :aria-current="level.current ? 'true' : undefined"
           @click="$emit('select', level.id)"
         >
-          <span class="name">{{ level.title }}</span>
+          <span class="name">
+            <span v-if="level.echo" class="tag">声</span>{{ level.title }}
+          </span>
           <span class="best">{{ level.bestSteps == null ? "尚未通关" : `${level.bestSteps} 步` }}</span>
         </button>
         <p>{{ level.blurb }}</p>
